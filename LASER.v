@@ -9,8 +9,8 @@ output reg [3:0] C2X,
 output reg [3:0] C2Y,
 output reg DONE);
 
-reg current_state;
-reg next_state;
+reg [3:0]current_state;
+reg [3:0]next_state;
 parameter  INIT = 0;
 parameter READ = 1;
 parameter CAL_CIRCLE2_LOCATION = 2;
@@ -19,7 +19,14 @@ parameter CAL_UP = 4;
 parameter CAL_DOWN = 5;
 parameter CAL_LEFT = 6;
 parameter CAL_RIGHT = 7;
+parameter OUTPUT = 8;
 
+// wire [3:0]  before_x = C1X - 1;
+// wire [3:0]  after_x = C1X + 1;
+// wire [3:0]  before_y = C2Y - 1;
+// wire [3:0]  after_y = C2Y + 1;
+reg circle;
+reg [5:0] tmp_max_cover;
 reg [5:0] max_cover;
 reg [5:0] counter;
 reg [3:0] bufferX [39:0];
@@ -32,9 +39,12 @@ reg [3:0] temp_3;
 reg [3:0] temp_4;
 assign add_1 = (temp_1 + temp_2) >> 1;
 assign add_2 = (temp_3 + temp_4) >> 1;
-reg [5:0] counter;
 integer i;
 
+reg [3:0] tmpx1, tmpx2, tmpy1, tmpy2;
+wire signed [8:0] mul1, mul2;
+assign mul1 =(tmpx1 - bufferX[counter])*(tmpx1 - bufferX[counter]) + (tmpy1 - bufferY[counter])*(tmpy1 - bufferY[counter]);
+assign mul2 =(tmpx2 - bufferX[counter])*(tmpx2 - bufferX[counter]) + (tmpy2 - bufferY[counter])*(tmpy2 - bufferY[counter]);
 always @(posedge CLK or posedge RST) begin
     if(RST)
         current_state <= INIT;
@@ -50,6 +60,36 @@ case (current_state)
         next_state =  (counter == 6'd39)?CAL_CIRCLE2_LOCATION:READ;
     CAL_CIRCLE2_LOCATION:
         next_state = CAL_COVER_RATE;
+    CAL_UP:
+    begin
+        if(counter == 6'd40)
+            next_state =(tmp_max_cover> max_cover)?CAL_UP:CAL_DOWN;
+        else
+            next_state = CAL_UP;
+    end
+    CAL_DOWN:
+    begin
+        if(counter == 6'd40)
+            next_state =(tmp_max_cover> max_cover)?CAL_UP:CAL_LEFT;
+        else
+            next_state = CAL_DOWN;
+    end
+    CAL_LEFT:
+    begin
+        if(counter == 6'd40)
+            next_state =(tmp_max_cover> max_cover)?CAL_UP:CAL_RIGHT;
+        else
+            next_state = CAL_LEFT;
+    end
+    CAL_RIGHT:
+    begin
+        if(counter == 6'd40)
+            next_state =(tmp_max_cover> max_cover)?CAL_UP:OUTPUT;
+        else
+            next_state = CAL_RIGHT;
+    end
+    OUTPUT:
+        next_state = READ;
     default: 
         next_state = INIT;
 endcase
@@ -70,7 +110,7 @@ begin
         temp_3 <= 0;
         temp_4 <= 0;
     end
-    else if(next_state == READ)
+    else if(next_state == READ || current_state == READ)
     begin
         if(counter == 0)
         begin
@@ -91,15 +131,117 @@ begin
     end
 
 end
+// tmp_max_cover
+always @(posedge CLK) begin
+if(RST)
+    tmp_max_cover <= 6'd0;
+else if(current_state == CAL_COVER_RATE)
+begin
+    if(counter >1)
+    begin
+        if(mul1 <=16 || mul2 <= 16)
+            tmp_max_cover <= max_cover + 1;
+    end
+end
+end
 // max_cover
 always @(posedge CLK) begin
 if(RST)
-    max_cover <= 6'd0;
+    tmp_max_cover <= 6'd0;
 else if(current_state == CAL_COVER_RATE)
 begin
+    if(counter == 6'd39)
+    begin
+        if(tmp_max_cover >max_cover)
+            max_cover <= tmp_max_cover;
+    end
+end
+end
+// circle
+// tmpx. tmpy
+always @(posedge CLK) begin
+if(RST)
+begin
+    tmpx1 <= 0;
+    tmpx2 <= 0;
+    tmpy1 <= 0;
+    tmpy2 <= 0;
+end
+else if(current_state == CAL_COVER_RATE)
+begin
+    tmpx1 <= C1X;
+    tmpy1 <= C1Y;
+end
+else if(current_state == CAL_UP)
+begin
+    if(circle)//circel 1
+    begin
+        tmpx1 <= C1X-1;
+        tmpy1 <= C1Y;
+        tmpx2 <= C2X;
+        tmpy2 <= C2Y;
+    end
+    else // circle 2
+    begin
+        tmpx1 <= C1X;
+        tmpy1 <= C1Y;
+        tmpx2 <= C2X-1;
+        tmpy2 <= C2Y;
+    end
+end
+else if(current_state == CAL_DOWN)
+begin
+    if(circle)//circel 1
+    begin
+        tmpx1 <= C1X+1;
+        tmpy1 <= C1Y;
+        tmpx2 <= C2X;
+        tmpy2 <= C2Y;
+    end
+    else // circle 2
+    begin
+        tmpx1 <= C1X;
+        tmpy1 <= C1Y;
+        tmpx2 <= C2X+1;
+        tmpy2 <= C2Y;
+    end
+end
+else if(current_state == CAL_LEFT)
+begin
+    if(circle)//circel 1
+    begin
+        tmpx1 <= C1X;
+        tmpy1 <= C1Y-1;
+        tmpx2 <= C2X;
+        tmpy2 <= C2Y;
+    end
+    else // circle 2
+    begin
+        tmpx1 <= C1X;
+        tmpy1 <= C1Y;
+        tmpx2 <= C2X;
+        tmpy2 <= C2Y-1;
+    end
+end
+else if(current_state == CAL_RIGHT)
+begin
+    if(circle)//circel 1
+    begin
+        tmpx1 <= C1X;
+        tmpy1 <= C1Y+1;
+        tmpx2 <= C2X;
+        tmpy2 <= C2Y;
+    end
+    else // circle 2
+    begin
+        tmpx1 <= C1X;
+        tmpy1 <= C1Y;
+        tmpx2 <= C2X;
+        tmpy2 <= C2Y+1;
+    end
+end
 end
 
-end
 
 // counter
 always @(posedge CLK) begin
@@ -112,6 +254,7 @@ else if(current_state == CAL_CIRCLE2_LOCATION)
 else if(current_state == CAL_COVER_RATE)
     counter <= counter + 1;
 end
+
 // OUTPUT
 always @(posedge CLK) begin
 if(RST)
@@ -122,10 +265,9 @@ begin
     C2Y <= 0;
     DONE <= 0;
 end
-else if(current_state == CAL_CIRCLE2_LOCATION)
+else if(next_state == OUTPUT)
 begin
-    C2X <= add_1;
-    C2Y <= add_2;
+    DONE <= 1;
 end
 
 
