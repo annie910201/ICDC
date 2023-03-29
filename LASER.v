@@ -20,12 +20,8 @@ parameter CAL_UP = 4;
 parameter CAL_DOWN = 5;
 parameter CAL_LEFT = 6;
 parameter CAL_RIGHT = 7;
-parameter CAL_LEFT_UP = 8;
-parameter CAL_LEFT_DOWN = 9;
-parameter CAL_RIGHT_UP = 10;
-parameter CAL_RIGHT_DOWN = 11;
-parameter OPTIMIZE = 12;
-parameter OUTPUT = 13;
+parameter OPTIMIZE = 8;
+parameter OUTPUT = 9;
 reg change;
 reg circle;
 reg [5:0] tmp_max_cover;
@@ -71,16 +67,7 @@ case (current_state)
         next_state =(counter == 6'd40)?CAL_RIGHT:CAL_UP;
     
     CAL_RIGHT:
-        next_state =(counter == 6'd40)?CAL_LEFT_DOWN:CAL_RIGHT;
-    CAL_LEFT_DOWN:
-        next_state =(counter == 6'd40)?CAL_LEFT_UP:CAL_LEFT_DOWN;
-    CAL_LEFT_UP:
-        next_state =(counter == 6'd40)?CAL_RIGHT_UP:CAL_LEFT_UP;
-    
-    CAL_RIGHT_UP:
-        next_state =(counter == 6'd40)?CAL_RIGHT_DOWN:CAL_RIGHT_UP;
-    CAL_RIGHT_DOWN:
-        next_state =(counter == 6'd40)?CAL_LEFT:CAL_RIGHT_DOWN;
+        next_state =(counter == 6'd40)?CAL_LEFT:CAL_RIGHT;
     CAL_LEFT:
         next_state =(counter == 6'd40)?OPTIMIZE:CAL_LEFT;
         
@@ -211,15 +198,6 @@ begin
                 dir2 <= 3;
             CAL_RIGHT:
                 dir2 <= 4;
-            CAL_RIGHT_DOWN:
-                dir2 <= 5;
-            CAL_RIGHT_UP:
-                dir2 <= 6;
-            CAL_LEFT_DOWN:
-                dir2 <= 7;
-            CAL_LEFT_UP:
-                dir2 <= 8;
-
         endcase
     end
     else
@@ -234,14 +212,6 @@ begin
                 dir1 <= 3;
             CAL_RIGHT:
                 dir1 <= 4;
-            CAL_RIGHT_DOWN:
-                dir1 <= 5;
-            CAL_RIGHT_UP:
-                dir1 <= 6;
-            CAL_LEFT_DOWN:
-                dir1 <= 7;
-            CAL_LEFT_UP:
-                dir1 <= 8;
         endcase
     end
 end
@@ -348,74 +318,7 @@ begin
         tmpy2 <= C2Y-interval;
     end
 end
-else if(current_state == CAL_LEFT_UP)
-begin
-    if(circle)//circel 1
-    begin
-        tmpx1 <= C1X+interval;
-        tmpy1 <= C1Y+interval;
-        tmpx2 <= C2X;
-        tmpy2 <= C2Y;
-    end
-    else // circle 2
-    begin
-        tmpx1 <= C1X;
-        tmpy1 <= C1Y;
-        tmpx2 <= C2X+interval;
-        tmpy2 <= C2Y+interval;
-    end
-end
-else if(current_state == CAL_RIGHT_UP)
-begin
-    if(circle)//circel 1
-    begin
-        tmpx1 <= C1X-interval;
-        tmpy1 <= C1Y-interval;
-        tmpx2 <= C2X;
-        tmpy2 <= C2Y;
-    end
-    else // circle 2
-    begin
-        tmpx1 <= C1X;
-        tmpy1 <= C1Y;
-        tmpx2 <= C2X-interval;
-        tmpy2 <= C2Y-interval;
-    end
-end
-else if(current_state == CAL_LEFT_DOWN)
-begin
-    if(circle)//circel 1
-    begin
-        tmpx1 <= C1X-interval;
-        tmpy1 <= C1Y+interval;
-        tmpx2 <= C2X;
-        tmpy2 <= C2Y;
-    end
-    else // circle 2
-    begin
-        tmpx1 <= C1X;
-        tmpy1 <= C1Y;
-        tmpx2 <= C2X-interval;
-        tmpy2 <= C2Y+interval;
-    end
-end
-else if(current_state == CAL_RIGHT_DOWN)
-begin
-    if(circle)//circel 1
-    begin
-        tmpx1 <= C1X+interval;
-        tmpy1 <= C1Y-interval;
-        tmpx2 <= C2X;
-        tmpy2 <= C2Y;
-    end
-    else // circle 2
-    begin
-        tmpx1 <= C1X;
-        tmpy1 <= C1Y;
-        tmpx2 <= C2X+interval;
-        tmpy2 <= C2Y-interval;
-    end
-end
+
 end
 
 
@@ -436,7 +339,7 @@ begin
     else
         counter <= counter + 1;
 end
-else if(current_state == CAL_UP || current_state == CAL_DOWN || current_state == CAL_LEFT|| current_state == CAL_RIGHT || current_state == CAL_LEFT_DOWN || current_state ==CAL_LEFT_UP || current_state == CAL_RIGHT_DOWN || current_state == CAL_RIGHT_UP)
+else if(current_state == CAL_UP || current_state == CAL_DOWN || current_state == CAL_LEFT|| current_state == CAL_RIGHT )
 begin
     if(counter ==6'd40)
         counter <= 0;
